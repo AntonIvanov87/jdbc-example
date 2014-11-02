@@ -1,1 +1,6 @@
+/target/
+
+/src/main/resources/overridden.properties
+
 *.iml
+/.idea/
