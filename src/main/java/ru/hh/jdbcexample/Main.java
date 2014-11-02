@@ -1,6 +1,7 @@
 package ru.hh.jdbcexample;
 
 import ru.hh.jdbcexample.settings.Settings;
+import ru.hh.jdbcexample.users.NewUser;
 import ru.hh.jdbcexample.users.User;
 import ru.hh.jdbcexample.users.UserDAO;
 import ru.hh.jdbcexample.users.UserPureJDBCDAO;
@@ -32,25 +33,25 @@ final class Main {
 
   private static void play(final UserDAO userDAO) {
 
-    final User user = User.create("Gordon", "Freeman");
-    userDAO.insert(user);
-    System.out.println("persisted " + user);
+    final NewUser newGordonFreeman = new NewUser("Gordon", "Freeman");
+    final User gordonFreeman = userDAO.insert(newGordonFreeman);
+    System.out.println("persisted " + newGordonFreeman);
     System.out.println("users in db: " + userDAO.getAll());
     System.out.println();
 
-    user.setFirstName("Morgan");
-    userDAO.update(user);
-    System.out.println("updated Gordon to Morgan");
+    final User morganFreeman = gordonFreeman.withFirstName("Morgan");
+    userDAO.update(morganFreeman);
+    System.out.println("updated " + gordonFreeman + " to " + morganFreeman);
     System.out.println("users in db: " + userDAO.getAll());
     System.out.println();
 
-    userDAO.delete(user.getId());
-    System.out.println("deleted user with id " + user.getId());
+    userDAO.delete(morganFreeman.id);
+    System.out.println("deleted user with " + morganFreeman.id);
     System.out.println("users in db: " + userDAO.getAll());
     System.out.println();
 
-    final Optional<User> emptyMorganFreeman = userDAO.get(user.getId());
-    System.out.println("tried to get user by " + user.getId() + " but got " + emptyMorganFreeman);
+    final Optional<User> emptyMorganFreeman = userDAO.get(morganFreeman.id);
+    System.out.println("tried to get user by " + morganFreeman.id + " but got " + emptyMorganFreeman);
     System.out.println();
   }
 

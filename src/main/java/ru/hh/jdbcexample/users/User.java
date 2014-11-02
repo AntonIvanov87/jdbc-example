@@ -1,79 +1,41 @@
 package ru.hh.jdbcexample.users;
 
-import java.util.Objects;
+import static java.util.Objects.requireNonNull;
 
-public final class User {
+public class User extends AbstractUser {
 
-  private Integer id;  // problem: id is null for new user and not null for existing user
-                       // seems that NewUser and PersistedUser are distinct classes
-  private String firstName;
-  private String lastName;
+  public final UserId id;  // warn: separate class for id field is not common practice
 
-  // public factory method to create new user from outside
-  public static User create(final String firstName, final String lastName) {
-    return new User(null, firstName, lastName);
+  User(final UserId id, final String firstName, final String lastName) {
+    super(firstName, lastName);
+    this.id = requireNonNull(id);
   }
 
-  // package factory method to load user from db
-  // id parameter is int - not Integer - existing user should always have id
-  static User existing(final int id, final String firstName, final String lastName) {
-    return new User(id, firstName, lastName);
-  }
-
-  // private constructor, only factory methods can be used
-  private User(final Integer id, final String firstName, final String lastName) {
-    this.id = id;
-    this.firstName = firstName;
-    this.lastName = lastName;
-  }
-
-  public Integer getId() {
-    return id;
-  }
-
-  // setter is package - not public - to prevent changing id from outside
-  // also id parameter is int, not Integer to prevent setting null
-  void setId(final int id) {
-    this.id = id;
-  }
-
-  public String getFirstName() {
-    return firstName;
-  }
-
-  public void setFirstName(final String firstName) {
-    this.firstName = firstName;
-  }
-
-  public String getLastName() {
-    return lastName;
-  }
-
-  public void setLastName(final String lastName) {
-    this.lastName = lastName;
+  // fluent interface ready :-)
+  public User withFirstName(final String firstName) {
+    return new User(id, firstName, super.lastName);
   }
 
   @Override
   public boolean equals(final Object that) {
     if (this == that) return true;
     if (that == null || getClass() != that.getClass()) return false;
+    if (!super.equals(that)) return false;
 
     final User thatUser = (User) that;
-    return Objects.equals(id, thatUser.id)
-            && Objects.equals(firstName, thatUser.firstName)
-            && Objects.equals(lastName, thatUser.lastName);
+    return id.equals(thatUser.id);
   }
 
   @Override
   public int hashCode() {
-    return id != null ? id.hashCode() : 0;
+    return id.hashCode();
   }
 
   @Override
   public String toString() {
     return String.format(
-            "%s{id=%d, firstName='%s', lastName='%s'}",
-            getClass().getSimpleName(), id, firstName, lastName
+            "%s{id=%d, %s}",
+            getClass().getSimpleName(), id.val, super.fieldsToString()
     );
   }
 }

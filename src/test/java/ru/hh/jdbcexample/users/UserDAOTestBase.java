@@ -19,31 +19,27 @@ public abstract class UserDAOTestBase extends DBTestBase {
   @Test
   public void insertShouldInsertNewUserInDBAndReturnUserWithAssignedId() throws Exception {
 
-    final User user1 = User.create("Ville", "Valo");
-    final User user2 = User.create("Martin", "Odersky");
+    final NewUser newUser1 = new NewUser("Ville", "Valo");
+    final NewUser newUser2 = new NewUser("Martin", "Odersky");
 
-    userDAO().insert(user1);
-    userDAO().insert(user2);
+    final User user1 = userDAO().insert(newUser1);
+    final User user2 = userDAO().insert(newUser2);
 
-    assertEquals(user1, userDAO().get(user1.getId()).get());
-    assertEquals(user2, userDAO().get(user2.getId()).get());
-  }
+    assertEquals(newUser1.firstName, user1.firstName);
+    assertEquals(newUser1.lastName, user1.lastName);
+    assertEquals(user1, userDAO().get(user1.id).get());
 
-  @Test(expected = IllegalArgumentException.class)
-  public void insertShouldThrowIllegalArgumentExceptionIfUserHasId() throws Exception {
-
-    final User user = User.existing(1, "first name", "last name");
-
-    userDAO().insert(user);
+    assertEquals(newUser2.firstName, user2.firstName);
+    assertEquals(newUser2.lastName, user2.lastName);
+    assertEquals(user2, userDAO().get(user2.id).get());
   }
 
   @Test
   public void getShouldReturnUser() throws Exception {
 
-    final User user = User.create("Ville", "Valo");
-    userDAO().insert(user);
+    final User user = userDAO().insert(new NewUser("Ville", "Valo"));
 
-    final Optional<User> userFromDB = userDAO().get(user.getId());
+    final Optional<User> userFromDB = userDAO().get(user.id);
 
     assertEquals(user, userFromDB.get());
   }
@@ -51,7 +47,7 @@ public abstract class UserDAOTestBase extends DBTestBase {
   @Test
   public void getShouldReturnEmptyOptionalIfNoUserWithSuchId() throws Exception {
 
-    final int nonExistentUserId = 666;
+    final UserId nonExistentUserId = new UserId(666);
 
     final Optional<User> userFromDB = userDAO().get(nonExistentUserId);
 
@@ -63,11 +59,8 @@ public abstract class UserDAOTestBase extends DBTestBase {
 
     assertTrue(userDAO().getAll().isEmpty());
 
-    final User user1 = User.create("Joe", "Armstrong");
-    final User user2 = User.create("Martin", "Odersky");
-
-    userDAO().insert(user1);
-    userDAO().insert(user2);
+    final User user1 = userDAO().insert(new NewUser("Joe", "Armstrong"));
+    final User user2 = userDAO().insert(new NewUser("Martin", "Odersky"));
 
     final Set<User> usersFromDB = userDAO().getAll();
 
@@ -77,28 +70,25 @@ public abstract class UserDAOTestBase extends DBTestBase {
   @Test
   public void updateShouldUpdateUser() throws Exception {
 
-    final User user = User.create("Ville", "Valo");
-    userDAO().insert(user);
-    user.setFirstName("Ivan");
+    final NewUser newUser = new NewUser("Ville", "Valo");
+    final User user = userDAO().insert(newUser);
+    final User updatedUser = user.withFirstName("Ivan");
 
-    userDAO().update(user);
+    userDAO().update(updatedUser);
 
-    final User userFromDB = userDAO().get(user.getId()).get();
-    assertEquals(user, userFromDB);
+    final User updatedUserFromDB = userDAO().get(user.id).get();
+    assertEquals(updatedUser, updatedUserFromDB);
   }
 
   @Test
   public void deleteShouldDeleteUserById() throws Exception {
 
-    final User user1 = User.create("Joe", "Armstrong");
-    final User user2 = User.create("Martin", "Odersky");
+    final User user1 = userDAO().insert(new NewUser("Ville", "Valo"));
+    final User user2 = userDAO().insert(new NewUser("Martin", "Odersky"));
 
-    userDAO().insert(user1);
-    userDAO().insert(user2);
+    userDAO().delete(user1.id);
 
-    userDAO().delete(user1.getId());
-
-    assertFalse(userDAO().get(user1.getId()).isPresent());
-    assertTrue(userDAO().get(user2.getId()).isPresent());
+    assertFalse(userDAO().get(user1.id).isPresent());
+    assertTrue(userDAO().get(user2.id).isPresent());
   }
 }

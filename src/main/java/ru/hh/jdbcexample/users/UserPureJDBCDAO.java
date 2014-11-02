@@ -21,12 +21,9 @@ public class UserPureJDBCDAO implements UserDAO {
   }
 
   @Override
-  public void insert(final User user) {
+  public User insert(final NewUser newUser) {
 
-    if (user.getId() != null) {
-      // problem: runtime exception, can we move to compile time?
-      throw new IllegalArgumentException("can not save " + user + " with already assigned id");
-    }
+    // yey, no runtime exception!
 
     try (final Connection connection = dataSource.getConnection()) {
 
@@ -34,31 +31,32 @@ public class UserPureJDBCDAO implements UserDAO {
       try (final PreparedStatement statement =
                    connection.prepareStatement(query, PreparedStatement.RETURN_GENERATED_KEYS)) {
 
-        statement.setString(1, user.getFirstName());
-        statement.setString(2, user.getLastName());
+        statement.setString(1, newUser.firstName);
+        statement.setString(2, newUser.lastName);
 
         statement.executeUpdate();
 
         try (final ResultSet generatedKeys = statement.getGeneratedKeys()) {
           generatedKeys.next();
-          user.setId(generatedKeys.getInt(1));  // problem: what if user is already in some set?
+          final UserId userId = new UserId(generatedKeys.getInt(1));
+          return new User(userId, newUser.firstName, newUser.lastName);
         }
       }
 
     } catch (final SQLException e) {
-      throw new RuntimeException("failed to persist " + user, e);
+      throw new RuntimeException("failed to persist " + newUser, e);
     }
   }
 
   @Override
-  public Optional<User> get(final int userId) {
+  public Optional<User> get(final UserId userId) {
 
     try (final Connection connection = dataSource.getConnection()) {
 
       final String query = "SELECT user_id, first_name, last_name FROM users WHERE user_id = ?";
       try (final PreparedStatement statement = connection.prepareStatement(query)) {
 
-        statement.setInt(1, userId);
+        statement.setInt(1, userId.val);
 
         try (final ResultSet resultSet = statement.executeQuery()) {
 
@@ -67,7 +65,7 @@ public class UserPureJDBCDAO implements UserDAO {
             return Optional.empty();
           }
           return Optional.of(
-                  User.existing(
+                  new User(
                           userId,
                           resultSet.getString("first_name"),
                           resultSet.getString("last_name")
@@ -76,7 +74,7 @@ public class UserPureJDBCDAO implements UserDAO {
         }
       }
     } catch (final SQLException e) {
-      throw new RuntimeException("failed to get user by id " + userId, e);
+      throw new RuntimeException("failed to get user by " + userId, e);
     }
   }
 
@@ -92,8 +90,9 @@ public class UserPureJDBCDAO implements UserDAO {
 
           final Set<User> users = new HashSet<>();
           while (resultSet.next()) {
-            final User user = User.existing(
-                    resultSet.getInt("user_id"),
+            final UserId userId = new UserId(resultSet.getInt("user_id"));
+            final User user = new User(
+                    userId,
                     resultSet.getString("first_name"),
                     resultSet.getString("last_name")
             );
@@ -110,19 +109,16 @@ public class UserPureJDBCDAO implements UserDAO {
   @Override
   public void update(final User user) {
 
-    if (user.getId() == null) {
-      // problem: runtime exception, can we move to compile time?
-      throw new IllegalArgumentException("can not update " + user + " without id");
-    }
+    // no more runtime exception
 
     try(final Connection connection = dataSource.getConnection()) {
 
       final String query = "UPDATE users SET first_name = ?, last_name = ? WHERE user_id = ?";
       try (final PreparedStatement statement = connection.prepareStatement(query)) {
 
-        statement.setString(1, user.getFirstName());
-        statement.setString(2, user.getLastName());
-        statement.setInt(3, user.getId());
+        statement.setString(1, user.firstName);
+        statement.setString(2, user.lastName);
+        statement.setInt(3, user.id.val);
 
         statement.executeUpdate();
       }
@@ -133,20 +129,20 @@ public class UserPureJDBCDAO implements UserDAO {
   }
 
   @Override
-  public void delete(final int userId) {
+  public void delete(final UserId userId) {
 
     try (final Connection connection = dataSource.getConnection()) {
 
       final String query = "DELETE FROM users WHERE user_id = ?";
       try(final PreparedStatement statement = connection.prepareStatement(query)) {
 
-        statement.setInt(1, userId);
+        statement.setInt(1, userId.val);
 
         statement.executeUpdate();
       }
 
     } catch (final SQLException e) {
-      throw new RuntimeException("failed to remove user by id " + userId, e);
+      throw new RuntimeException("failed to remove user by " + userId, e);
     }
   }
 }
